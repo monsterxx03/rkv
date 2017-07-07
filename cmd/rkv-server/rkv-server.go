@@ -8,6 +8,7 @@ import (
 	"github.com/monsterxx03/rkv/redis"
 	"sync"
 	"runtime"
+	"errors"
 )
 
 const (
@@ -77,13 +78,24 @@ func handleReq(conn net.Conn, server *Server) {
 			log.Println(err)
 			return
 		}
-		handleCmd(data[0], data[1:])
-		conn.Write([]byte("+PONG\r\n"))  // fake response
+		// TODO handle error
+		result, _ := handleCmd(data[0], data[1:])
+		conn.Write(result)  // fake response
 	}
 }
 
-func handleCmd(cmd []byte, args [][]byte) {
-
+func handleCmd(cmd []byte, args [][]byte) ([]byte, error) {
+	cmdStr := string(cmd)
+	cmdFunc, ok := redis.CommandsMap[cmdStr]
+	if !ok {
+		return nil, errors.New("unknown command" + cmdStr)
+	}
+	function := cmdFunc.(func ([][]byte) ([]byte, error))
+	response, err := function(args)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 func main() {
