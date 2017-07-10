@@ -1,4 +1,4 @@
-package redis
+package server
 
 import (
 	"bufio"
@@ -117,4 +117,3 @@ func readLine(buf *bufio.Reader) ([]byte, error) {
 	}
 	return data, nil
 }
-
