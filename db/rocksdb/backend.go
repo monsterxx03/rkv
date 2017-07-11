@@ -26,6 +26,31 @@ type DB struct {
 	defaultRo *gorocksdb.ReadOptions
 }
 
+// WriteBatch wrapper
+type WriteBatch struct {
+	db *DB
+	wb *gorocksdb.WriteBatch
+}
+
+func (b *WriteBatch) Close() {
+	b.wb.Destroy()
+}
+
+func (b *WriteBatch) Put(key, value []byte) {
+	b.wb.Put(key, value)
+}
+
+func (b *WriteBatch) Delete(key []byte) {
+	b.wb.Delete(key)
+}
+
+func (b *WriteBatch) Commit() error {
+	if err := b.db.db.Write(b.db.defaultWo, b.wb); err != nil {
+		return nil
+	}
+	return nil
+}
+
 func newDB() *DB {
 	rdb := new(DB)
 	rdb.defaultWo = gorocksdb.NewDefaultWriteOptions()
@@ -34,6 +59,7 @@ func newDB() *DB {
 }
 
 func (db *DB) open() error {
+	// TODO init options dynamically from config file
 	blo := gorocksdb.NewDefaultBlockBasedTableOptions()
 	blo.SetBlockCache(gorocksdb.NewLRUCache(1073741824))
 	blo.SetBlockSize(65536)
@@ -58,12 +84,12 @@ func (db *DB) open() error {
 	opts.SetMaxBackgroundFlushes(1)
 	opts.SetUseFsync(false)
 
-	rdb, err := gorocksdb.OpenDb(opts, "data")
-	if err != nil {
+	if rdb, err := gorocksdb.OpenDb(opts, "data"); err != nil {
 		return err
+	} else {
+		db.db = rdb
+		return nil
 	}
-	db.db = rdb
-	return nil
 }
 
 func (db *DB) Close() error {
@@ -72,27 +98,32 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Put(key, value []byte) error {
-	err := db.db.Put(db.defaultWo, key, value)
-	if err != nil {
+	if err := db.db.Put(db.defaultWo, key, value); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (db *DB) Get(key []byte) ([]byte, error) {
-	result, err := db.db.Get(db.defaultRo, key)
-	if err != nil {
+	if result, err := db.db.Get(db.defaultRo, key); err != nil {
 		return nil, err
+	} else {
+		return result.Data(), nil
 	}
-	return result.Data(), nil
 }
 
 func (db *DB) Delete(key []byte) error {
-	err := db.db.Delete(db.defaultWo, key)
-	if err != nil {
+	if err := db.db.Delete(db.defaultWo, key); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) NewBatch() backend.IBatch {
+	wb := new(WriteBatch)
+	wb.wb = gorocksdb.NewWriteBatch()
+	wb.db = db
+	return wb
 }
 
 func init() {

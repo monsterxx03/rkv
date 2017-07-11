@@ -10,7 +10,6 @@ import (
 	"strings"
 	"github.com/monsterxx03/rkv/db"
 	"io"
-	"net/http"
 	_ "net/http/pprof"
 	"runtime"
 )
@@ -38,9 +37,9 @@ type Server struct {
 }
 
 func (s *Server) Run() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:8080", nil))
-	}()
+	//go func() {
+	//	log.Println(http.ListenAndServe("localhost:8080", nil))
+	//}()
 	for {
 		select {
 		// TODO send quit via signal
@@ -49,7 +48,8 @@ func (s *Server) Run() {
 		default:
 			conn, err := s.listener.Accept()
 			if err != nil {
-				panic(err)
+				log.Println(err)
+				continue
 			}
 			go handleReq(conn, s)
 		}
@@ -100,6 +100,7 @@ func handleReq(conn net.Conn, serv *Server) {
 		c.cmd = strings.ToLower(string(data[0]))
 		c.args = data[1:]
 		c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
+		c.writeBatch = c.db.NewBatch()
 		if err := handleCmd(c); err != nil {
 			c.respWriter.writeError(err)
 		}

@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/monsterxx03/rkv/db"
 	"sync"
+	"github.com/monsterxx03/rkv/db/backend"
 )
 
 type client struct {
@@ -10,6 +11,7 @@ type client struct {
 	args [][]byte
 	db *db.DB
 	respWriter *RESPWriter
+	writeBatch backend.IBatch
 }
 
 type KeyGuard struct {

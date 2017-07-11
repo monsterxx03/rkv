@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strconv"
 	"io"
-	"fmt"
 	"bytes"
 	"net"
 )
@@ -18,8 +17,9 @@ const (
 	respString       = '$'
 	respArray        = '*'
 )
+
 var (
-	DELIMS  = []byte("\r\n")
+	DELIMS = []byte("\r\n")
 )
 
 type RESPReader struct {
@@ -46,8 +46,8 @@ func (reader *RESPReader) ParseRequest() ([][]byte, error) {
 	if len(line) == 0 {
 		return nil, errors.New("Empty RESP data")
 	}
-	length, err := strconv.Atoi(string(line[1:]))
-	if err != nil {
+	length, err := parseLen(line[1:])
+	if length < 0 || err != nil {
 		return nil, err
 	}
 	cmds := make([][]byte, length)
@@ -69,10 +69,15 @@ func parseInlineCmd(buf *bufio.Reader) ([][]byte, error) {
 	r := make([][]byte, 1)
 	scanner := bufio.NewScanner(bytes.NewReader(line))
 	scanner.Split(bufio.ScanWords)
+	ops := 0
 	for scanner.Scan() {
 		b := scanner.Bytes()
-		fmt.Println(string(b))
-		r = append(r, b)
+		if ops >= 1 {
+			r = append(r, b)
+		} else {
+			r[ops] = b
+			ops++
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
@@ -91,7 +96,7 @@ func parseBulkString(buf *bufio.Reader) ([]byte, error) {
 	if line[0] != respString {
 		return nil, errors.New("Invalid bulk string")
 	}
-	length, err := strconv.Atoi(string(line[1:]))
+	length, err := parseLen(line[1:])
 	if length < 0 || err != nil {
 		return nil, err
 	}
@@ -127,6 +132,27 @@ func readLine(buf *bufio.Reader) ([]byte, error) {
 	return data, nil
 }
 
+func parseLen(p []byte) (int, error) {
+	if len(p) == 0 {
+		return -1, errors.New("malformed length")
+	}
+
+	if p[0] == '-' && len(p) == 2 && p[1] == '1' {
+		// handle $-1 and $-1 null replies.
+		return -1, nil
+	}
+
+	var n int
+	for _, b := range p {
+		n *= 10
+		if b < '0' || b > '9' {
+			return -1, errors.New("illegal bytes in length")
+		}
+		n += int(b - '0')
+	}
+
+	return n, nil
+}
 
 func NewRESPWriter(conn net.Conn, size int) *RESPWriter {
 	return &RESPWriter{buf: bufio.NewWriterSize(conn, size)}

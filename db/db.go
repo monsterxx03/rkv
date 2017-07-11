@@ -34,3 +34,8 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	}
 	return value, nil
 }
+
+func (db *DB) NewBatch() backend.IBatch {
+	return db.db.NewBatch()
+}
+

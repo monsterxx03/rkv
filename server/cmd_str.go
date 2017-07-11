@@ -26,13 +26,13 @@ func cmdSet(c *client) error {
 	if len(c.args) != 2 {
 		return &WrongParamError{"set"}
 	}
-	/*
+	// check key type
 	if value, err := c.db.Get(c.args[0]); err != nil {
 		return err
 	} else if len(value) > 0 && codec.DecodeType(value) != codec.StrType {
 			return WrongTypeError
 	}
-	*/
+
 	if err := c.db.Put(c.args[0], codec.EncodeStrVal(c.args[1])); err != nil {
 		return err
 	}
