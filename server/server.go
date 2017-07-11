@@ -9,30 +9,35 @@ import (
 	"bufio"
 	"errors"
 	"strings"
+	"github.com/monsterxx03/rkv/db"
 )
 
 const (
 	DefaultAddr          string = "0.0.0.0"
 	DefaultPort          int    = 9910
 	DefaultReaderBufSize        = 4096
+	DefaultWriterBufSize        = 4096
 )
 
 type Config struct {
 	Addr          string
 	Port          int
 	ReaderBufSize int
+	WriterBufSize int
 }
 
 type Server struct {
 	cfg      *Config
 	listener net.Listener
-	Wg       sync.WaitGroup
+	db       *db.DB
+	wg       sync.WaitGroup
 	quit     <-chan struct{}
 }
 
 func (s *Server) Run() {
 	for {
 		select {
+		// TODO send quit via signal
 		case <-s.quit:
 			return
 		default:
@@ -46,14 +51,16 @@ func (s *Server) Run() {
 }
 
 func NewServer() *Server {
-	cfg := &Config{DefaultAddr, DefaultPort, DefaultReaderBufSize}
+	cfg := &Config{DefaultAddr, DefaultPort, DefaultReaderBufSize, DefaultWriterBufSize}
 	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.Port)
 	log.Println("Listening at:", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic("Failed to listen on: " + addr)
 	}
-	return &Server{cfg: cfg, listener: listener, quit: make(chan struct{})}
+	return &Server{
+		cfg: cfg, listener: listener,
+		db:  db.NewDB(), quit: make(chan struct{})}
 }
 
 func handleReq(conn net.Conn, serv *Server) {
@@ -65,9 +72,9 @@ func handleReq(conn net.Conn, serv *Server) {
 			log.Fatalf("panic when handleReq: %s, %v", buf, err)
 		}
 		conn.Close()
-		serv.Wg.Done()
+		serv.wg.Done()
 	}()
-	serv.Wg.Add(1)
+	serv.wg.Add(1)
 	buf := bufio.NewReaderSize(conn, serv.cfg.ReaderBufSize)
 	reader := NewRESPReader(buf)
 	for {
@@ -78,27 +85,23 @@ func handleReq(conn net.Conn, serv *Server) {
 			return
 		}
 		c := newClient()
+		c.db = serv.db
 		c.cmd = strings.ToLower(string(data[0]))
 		c.args = data[1:]
-		result, err := handleCmd(c)
+		c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
+		err = handleCmd(c)
 		if err != nil {
-			conn.Write([]byte(fmt.Sprintf("-ERR %s\r\n", err.Error())))
-		} else {
-			conn.Write(result) // fake response
+			c.respWriter.writeError(err)
 		}
+		c.respWriter.flush()
 	}
 }
 
-func handleCmd(c *client) ([]byte, error) {
+func handleCmd(c *client) error {
 	cmdStr := c.cmd
 	cmdFunc, ok := CommandsMap[cmdStr]
 	if !ok {
-		return nil, errors.New("unknown command " + cmdStr)
+		return errors.New("unknown command " + cmdStr)
 	}
-	function := cmdFunc
-	response, err := function(c)
-	if err != nil {
-		return nil, err
-	}
-	return response, nil
+	return cmdFunc(c)
 }

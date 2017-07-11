@@ -3,7 +3,7 @@ package server
 import "fmt"
 
 
-type CommandFunc func(*client) ([]byte, error)
+type CommandFunc func(*client) error
 
 var CommandsMap = map[string]CommandFunc{}
 
@@ -15,16 +15,19 @@ func register(cmd string, function CommandFunc) {
 	CommandsMap[cmd] = function
 }
 
-func cmdInfo(c *client) ([]byte, error) {
-	return []byte("+INFO\r\n"), nil
+func cmdInfo(c *client) error {
+	c.respWriter.writeStr("info")
+	return nil
 }
 
-func cmdPing(c *client) ([]byte, error) {
-	return []byte("+PONG\r\n"), nil
+func cmdPing(c *client) error {
+	c.respWriter.writeStr("pong")
+	return nil
 }
 
-func cmdEcho(c *client) ([]byte, error) {
-	return []byte("+hahah\r\n"), nil
+func cmdEcho(c *client) error {
+	c.respWriter.writeStr("hahah")
+	return nil
 }
 
 func init() {

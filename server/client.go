@@ -6,10 +6,10 @@ type client struct {
 	cmd string
 	args [][]byte
 	db *db.DB
+	respWriter *RESPWriter
 }
 
 func newClient() *client {
 	c := new(client)
-	c.db = db.NewDB()
 	return c
 }

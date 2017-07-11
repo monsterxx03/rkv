@@ -1,12 +1,12 @@
 package server
 
 
-func cmdLpush(c *client) ([]byte, error) {
-	return []byte("+lpush\r\n"), nil
+func cmdLpush(c *client) error {
+	return nil
 }
 
-func cmdRpush(c *client) ([]byte, error) {
-	return []byte("+rpush\r\n"), nil
+func cmdRpush(c *client) error {
+	return nil
 }
 
 func init() {

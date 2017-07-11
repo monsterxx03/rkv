@@ -7,8 +7,10 @@ import (
 	"io"
 	"fmt"
 	"bytes"
+	"net"
 )
 
+//RESP: Redis Serialization Protocol
 const (
 	respSimpleString = '+'
 	respERROR        = '-'
@@ -16,9 +18,14 @@ const (
 	respString       = '$'
 	respArray        = '*'
 )
+var DELIMS  = []byte("\r\n")
 
 type RESPReader struct {
 	buf *bufio.Reader
+}
+
+type RESPWriter struct {
+	buf *bufio.Writer
 }
 
 func (reader *RESPReader) ParseRequest() ([][]byte, error) {
@@ -116,4 +123,28 @@ func readLine(buf *bufio.Reader) ([]byte, error) {
 		return append(data, _data...), nil
 	}
 	return data, nil
+}
+
+
+func NewRESPWriter(conn net.Conn, size int) *RESPWriter {
+	return &RESPWriter{buf: bufio.NewWriterSize(conn, size)}
+}
+
+func (w *RESPWriter) flush() {
+	w.buf.Flush()
+}
+
+func (w *RESPWriter) writeError(err error) {
+	w.buf.Write([]byte("-"))
+	if err != nil {
+		w.buf.Write([]byte(err.Error()))
+	}
+	w.buf.Write(DELIMS)
+}
+
+// write simple string to response
+func (w *RESPWriter) writeStr(s string) {
+	w.buf.Write([]byte("+"))
+	w.buf.Write([]byte(s))
+	w.buf.Write(DELIMS)
 }

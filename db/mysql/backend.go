@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"github.com/monsterxx03/rkv/db/backend"
+	"fmt"
 )
 
 type Backend struct {
@@ -31,6 +32,7 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Put(key, value []byte) error {
+	fmt.Println("puting")
 	return nil
 }
 
