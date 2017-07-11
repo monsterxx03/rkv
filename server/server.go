@@ -51,7 +51,7 @@ func (s *Server) Run() {
 				log.Println(err)
 				continue
 			}
-			go handleReq(conn, s)
+			handleReq(conn, s)
 		}
 	}
 }
@@ -70,6 +70,19 @@ func NewServer() *Server {
 }
 
 func handleReq(conn net.Conn, serv *Server) {
+	c := newClient()
+	c.server = serv
+	c.conn = conn
+	c.db = serv.db
+	c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
+	c.writeBatch = c.db.NewBatch()
+	buf := bufio.NewReaderSize(conn, serv.cfg.ReaderBufSize)
+	c.respReader = NewRESPReader(buf)
+
+	go c.run()
+}
+
+func _handleReq(conn net.Conn, serv *Server) {
 	defer func() {
 		if err := recover(); err != nil {
 			buf := make([]byte, 4096)
