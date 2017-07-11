@@ -5,11 +5,14 @@ import (
 	"sync"
 	"fmt"
 	"log"
-	"runtime"
 	"bufio"
 	"errors"
 	"strings"
 	"github.com/monsterxx03/rkv/db"
+	"io"
+	"net/http"
+	_ "net/http/pprof"
+	"runtime"
 )
 
 const (
@@ -35,6 +38,9 @@ type Server struct {
 }
 
 func (s *Server) Run() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:8080", nil))
+	}()
 	for {
 		select {
 		// TODO send quit via signal
@@ -69,7 +75,7 @@ func handleReq(conn net.Conn, serv *Server) {
 			buf := make([]byte, 4096)
 			length := runtime.Stack(buf, false)
 			buf = buf[0:length]
-			log.Fatalf("panic when handleReq: %s, %v", buf, err)
+			log.Printf("panic when handleReq: %s, %v", buf, err)
 		}
 		conn.Close()
 		serv.wg.Done()
@@ -81,16 +87,20 @@ func handleReq(conn net.Conn, serv *Server) {
 		// continue read from client
 		data, err := reader.ParseRequest()
 		if err != nil {
-			log.Println(err)
-			return
+			if err == io.EOF {
+				// client close connection
+				return
+			} else {
+				// unexpected error
+				panic(err)
+			}
 		}
 		c := newClient()
 		c.db = serv.db
 		c.cmd = strings.ToLower(string(data[0]))
 		c.args = data[1:]
 		c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
-		err = handleCmd(c)
-		if err != nil {
+		if err := handleCmd(c); err != nil {
 			c.respWriter.writeError(err)
 		}
 		c.respWriter.flush()

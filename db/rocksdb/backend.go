@@ -34,11 +34,30 @@ func newDB() *DB {
 }
 
 func (db *DB) open() error {
-	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(3 << 30))
+	blo := gorocksdb.NewDefaultBlockBasedTableOptions()
+	blo.SetBlockCache(gorocksdb.NewLRUCache(1073741824))
+	blo.SetBlockSize(65536)
+	blo.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
+
 	opts := gorocksdb.NewDefaultOptions()
-	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetBlockBasedTableFactory(blo)
+
+	env := gorocksdb.NewDefaultEnv()
+	env.SetBackgroundThreads(16)
+	env.SetHighPriorityBackgroundThreads(1)
+	opts.SetEnv(env)
+
 	opts.SetCreateIfMissing(true)
+	opts.SetCompression(gorocksdb.NoCompression)
+	opts.SetWriteBufferSize(134217728)
+	opts.SetMaxWriteBufferNumber(6)
+	opts.SetMinWriteBufferNumberToMerge(2)
+	opts.SetMaxOpenFiles(1024)
+	opts.SetNumLevels(7)
+	opts.SetMaxBackgroundCompactions(15)
+	opts.SetMaxBackgroundFlushes(1)
+	opts.SetUseFsync(false)
+
 	rdb, err := gorocksdb.OpenDb(opts, "data")
 	if err != nil {
 		return err

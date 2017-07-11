@@ -138,30 +138,30 @@ func (w *RESPWriter) flush() {
 
 // return error message to client
 func (w *RESPWriter) writeError(err error) {
-	w.buf.WriteByte(respERROR)
+	w.buf.WriteRune(respERROR)
 	if err != nil {
-		w.buf.Write([]byte(err.Error()))
+		w.buf.WriteString(err.Error())
 	}
 	w.buf.Write(DELIMS)
 }
 
 // return simple string to client
 func (w *RESPWriter) writeStr(s string) {
-	w.buf.WriteByte(respSimpleString)
-	w.buf.Write([]byte(s))
+	w.buf.WriteRune(respSimpleString)
+	w.buf.WriteString(s)
 	w.buf.Write(DELIMS)
 }
 
 // return bulk string to client
 func (w *RESPWriter) writeBulkStr(s []byte) {
-	w.buf.WriteByte(respString)
+	w.buf.WriteRune(respString)
 	if len(s) > 0 {
-		w.buf.Write([]byte(strconv.Itoa(len(s))))
+		w.buf.WriteString(strconv.Itoa(len(s)))
 		w.buf.Write(DELIMS)
 		w.buf.Write(s)
 		w.buf.Write(DELIMS)
 	} else {
-		w.buf.Write([]byte("-1"))
+		w.buf.WriteString("-1")
 		w.buf.Write(DELIMS)
 		return
 	}

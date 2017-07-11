@@ -39,6 +39,9 @@ func EncodeStrVal(value []byte) []byte {
 }
 
 func DecodeStrKey(rawValue []byte) []byte {
+	if len(rawValue) == 0 {
+		return []byte{}
+	}
 	return rawValue[1:]
 }
 
