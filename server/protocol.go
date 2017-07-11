@@ -18,7 +18,9 @@ const (
 	respString       = '$'
 	respArray        = '*'
 )
-var DELIMS  = []byte("\r\n")
+var (
+	DELIMS  = []byte("\r\n")
+)
 
 type RESPReader struct {
 	buf *bufio.Reader
@@ -134,17 +136,33 @@ func (w *RESPWriter) flush() {
 	w.buf.Flush()
 }
 
+// return error message to client
 func (w *RESPWriter) writeError(err error) {
-	w.buf.Write([]byte("-"))
+	w.buf.WriteByte(respERROR)
 	if err != nil {
 		w.buf.Write([]byte(err.Error()))
 	}
 	w.buf.Write(DELIMS)
 }
 
-// write simple string to response
+// return simple string to client
 func (w *RESPWriter) writeStr(s string) {
-	w.buf.Write([]byte("+"))
+	w.buf.WriteByte(respSimpleString)
 	w.buf.Write([]byte(s))
 	w.buf.Write(DELIMS)
+}
+
+// return bulk string to client
+func (w *RESPWriter) writeBulkStr(s []byte) {
+	w.buf.WriteByte(respString)
+	if len(s) > 0 {
+		w.buf.Write([]byte(strconv.Itoa(len(s))))
+		w.buf.Write(DELIMS)
+		w.buf.Write(s)
+		w.buf.Write(DELIMS)
+	} else {
+		w.buf.Write([]byte("-1"))
+		w.buf.Write(DELIMS)
+		return
+	}
 }

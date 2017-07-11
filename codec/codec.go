@@ -19,7 +19,9 @@
 
 package codec
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 const (
 	StrType  byte = iota
@@ -32,12 +34,16 @@ const (
 func EncodeStrVal(value []byte) []byte {
 	key := make([]byte, len(value)+1)
 	key[0] = StrType
-	copy(key, value)
+	copy(key[1:], value)
 	return key
 }
 
-func DecodeStrKey(rawValue []byte) ([]byte) {
+func DecodeStrKey(rawValue []byte) []byte {
 	return rawValue[1:]
+}
+
+func DecodeType(rawValue []byte) byte {
+	return rawValue[0]
 }
 
 func EncodeMetaKey(keyName []byte, dataType byte, size int32) []byte {

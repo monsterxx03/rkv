@@ -101,7 +101,7 @@ func handleCmd(c *client) error {
 	cmdStr := c.cmd
 	cmdFunc, ok := CommandsMap[cmdStr]
 	if !ok {
-		return errors.New("unknown command " + cmdStr)
+		return errors.New("Err unknown command " + cmdStr)
 	}
 	return cmdFunc(c)
 }

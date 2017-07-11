@@ -12,7 +12,7 @@ type DB struct {
 }
 
 func NewDB() *DB {
-	b := backend.BackendMap["mysql"]
+	b := backend.BackendMap["rocksdb"]
 	db, err := b.Open()
 	if err != nil {
 		panic(err)

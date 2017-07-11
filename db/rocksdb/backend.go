@@ -2,6 +2,7 @@ package rocksdb
 
 import (
 	"github.com/monsterxx03/rkv/db/backend"
+	"github.com/tecbot/gorocksdb"
 )
 
 type Backend struct {
@@ -12,7 +13,7 @@ func (s Backend) String() string {
 }
 
 func (s Backend) Open() (backend.IDB, error) {
-	db := new(DB)
+	db := newDB()
 	if err := db.open(); err != nil {
 		return nil, err
 	}
@@ -20,25 +21,58 @@ func (s Backend) Open() (backend.IDB, error) {
 }
 
 type DB struct {
+	db *gorocksdb.DB
+	defaultWo *gorocksdb.WriteOptions
+	defaultRo *gorocksdb.ReadOptions
+}
+
+func newDB() *DB {
+	rdb := new(DB)
+	rdb.defaultWo = gorocksdb.NewDefaultWriteOptions()
+	rdb.defaultRo = gorocksdb.NewDefaultReadOptions()
+	return rdb
 }
 
 func (db *DB) open() error {
+	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
+	bbto.SetBlockCache(gorocksdb.NewLRUCache(3 << 30))
+	opts := gorocksdb.NewDefaultOptions()
+	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetCreateIfMissing(true)
+	rdb, err := gorocksdb.OpenDb(opts, "data")
+	if err != nil {
+		return err
+	}
+	db.db = rdb
 	return nil
 }
 
 func (db *DB) Close() error {
+	db.db.Close()
 	return nil
 }
 
 func (db *DB) Put(key, value []byte) error {
+	err := db.db.Put(db.defaultWo, key, value)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (db *DB) Get(key []byte) ([]byte, error) {
-	return nil, nil
+	result, err := db.db.Get(db.defaultRo, key)
+	if err != nil {
+		return nil, err
+	}
+	return result.Data(), nil
 }
 
 func (db *DB) Delete(key []byte) error {
+	err := db.db.Delete(db.defaultWo, key)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
