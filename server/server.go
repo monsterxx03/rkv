@@ -17,12 +17,6 @@ const (
 	DefaultWriterBufSize        = 4096
 )
 
-type Config struct {
-	Addr          string
-	Port          int
-	ReaderBufSize int
-	WriterBufSize int
-}
 
 type Server struct {
 	cfg      *Config
@@ -62,7 +56,7 @@ func (s *Server) Run() {
 
 func NewServer() *Server {
 	// TODO read from cfg file
-	cfg := &Config{DefaultAddr, DefaultPort, DefaultReaderBufSize, DefaultWriterBufSize}
+	cfg := newConfig()
 	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.Port)
 	log.Println("Listening at:", addr)
 	listener, err := net.Listen("tcp", addr)
