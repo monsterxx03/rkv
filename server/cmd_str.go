@@ -6,12 +6,17 @@ import (
 )
 
 func cmdGet(c *client, args Args) error {
-	if !args.matchN(1) {
+	if len(args) != 1 {
 		return &WrongParamError{"get"}
 	}
-	value, err := c.db.Get(args[0])
+	value, err := c.db.Get(args.key())
 	if err != nil {
 		return err
+	}
+	if len(value) == 0 {
+		// empty value
+		c.respWriter.writeBulkStr(value)
+		return nil
 	}
 	if err := codec.CheckStrType(value); err != nil {
 		return err
@@ -22,13 +27,14 @@ func cmdGet(c *client, args Args) error {
 }
 
 func cmdSet(c *client, args Args) error {
-	if !args.matchN(2) {
+	if len(args) != 2 {
 		return &WrongParamError{"set"}
 	}
 	c.Lock(args.skey())
 	defer c.Unlock(args.skey())
 
-	// check key type
+	// redis allow set overwrite all types
+	/*
 	value, err := c.db.Get(args[0])
 	if err != nil {
 		return err
@@ -36,8 +42,9 @@ func cmdSet(c *client, args Args) error {
 	if err := codec.CheckStrType(value); err != nil {
 		return err
 	}
+	*/
 
-	if err := c.db.Put(args[0], codec.EncodeStrVal(args[1])); err != nil {
+	if err := c.db.Put(args.key(), codec.EncodeStrVal(args.value())); err != nil {
 		return err
 	}
 	c.respWriter.writeStr("OK")
@@ -45,7 +52,7 @@ func cmdSet(c *client, args Args) error {
 }
 
 func cmdIncr(c *client, args Args) error {
-	if !args.matchN(1) {
+	if len(args) != 1 {
 		return &WrongParamError{"incr"}
 	}
 	c.Lock(args.skey())
@@ -55,6 +62,15 @@ func cmdIncr(c *client, args Args) error {
 	if err != nil {
 		return err
 	}
+	if len(value) == 0 {
+		// increase from 0
+		if err := c.db.Put(args[0], codec.EncodeStrVal(Int64ToSlice(1))); err != nil {
+			return nil
+		}
+		c.respWriter.writeInt(1)
+		return nil
+	}
+
 	if err := codec.CheckStrType(value); err != nil {
 		return err
 	}
@@ -74,16 +90,25 @@ func cmdIncr(c *client, args Args) error {
 }
 
 func cmdDecr(c *client, args Args) error {
-	if !args.matchN(1) {
+	if len(args) != 1 {
 		return &WrongParamError{"decr"}
 	}
 	c.Lock(args.skey())
 	defer c.Unlock(args.skey())
 
-	value, err := c.db.Get(args[0])
+	value, err := c.db.Get(args.key())
 	if err != nil {
 		return err
 	}
+	if len(value) == 0 {
+		// decrease from 0
+		if err := c.db.Put(args.key(), codec.EncodeStrVal(Int64ToSlice(-1))); err != nil {
+			return nil
+		}
+		c.respWriter.writeInt(-1)
+		return nil
+	}
+
 	if err := codec.CheckStrType(value); err != nil {
 		return err
 	}
@@ -94,7 +119,7 @@ func cmdDecr(c *client, args Args) error {
 		return NotIntError
 	}
 	n -= 1
-	if err := c.db.Put(args[0], codec.EncodeStrVal(Int64ToSlice(n))); err != nil {
+	if err := c.db.Put(args.key(), codec.EncodeStrVal(Int64ToSlice(n))); err != nil {
 		return err
 	}
 	c.respWriter.writeInt(n)

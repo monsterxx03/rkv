@@ -41,7 +41,7 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 
 // TODO clean up locks to avoid memory leak
 type MemLock struct {
-	m sync.RWMutex
+	m sync.RWMutex // used to concurrent read/write on locks map
 	locks map[string]*sync.Mutex
 }
 

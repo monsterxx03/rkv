@@ -46,7 +46,7 @@ func (b *WriteBatch) Delete(key []byte) {
 
 func (b *WriteBatch) Commit() error {
 	if err := b.db.db.Write(b.db.defaultWo, b.wb); err != nil {
-		return nil
+		return err
 	}
 	return nil
 }

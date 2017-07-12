@@ -52,31 +52,45 @@ func DecodeType(rawValue []byte) byte {
 	return rawValue[0]
 }
 
-func EncodeMetaKey(keyName []byte, dataType byte, size int32) []byte {
-	buf := make([]byte, len(keyName)+1)
+func EncodeMetaVal(dataType byte, size int) []byte {
+	buf := make([]byte, 1+4)
 	buf[0] = dataType
-	copy(buf, keyName)
-	binary.BigEndian.PutUint32(buf, uint32(size))
+	binary.BigEndian.PutUint32(buf[1:], uint32(size))
 	return buf
 }
 
-func EncodeListKey(keyName []byte, seq int32) []byte {
-	buf := make([]byte, len(keyName)+1)
+func DecodeSize(rawValue []byte) uint32 {
+	return binary.BigEndian.Uint32(rawValue[1:])
+}
+
+func EncodeListKey(keyName []byte, seq int) []byte {
+	buf := make([]byte, 1+len(keyName)+4)
 	buf[0] = ListType
-	copy(buf, keyName)
-	binary.BigEndian.PutUint32(buf, uint32(seq))
+	pos := 1
+	copy(buf[pos:], keyName)
+	pos += len(keyName)
+	binary.BigEndian.PutUint32(buf[pos:], uint32(seq))
 	return buf
 }
 
 func EncodeHashKey(keyName, fieldName []byte) []byte {
-	buf := make([]byte, len(keyName)+1+len(fieldName))
+	buf := make([]byte, 1+len(keyName)+len(fieldName))
 	buf[0] = HashType
 	pos := 1
-	pos += copy(buf, keyName)
-	copy(buf, fieldName)
+	pos += copy(buf[pos:], keyName)
+	copy(buf[pos:], fieldName)
 	return buf
 }
 
+func EncodeZSetKey(keyName, member []byte, score int64) []byte {
+	buf := make([]byte, 1+len(keyName)+len(member)+8)
+	buf[0] = ZSetType
+	pos := 1
+	pos += copy(buf[pos:], keyName)
+	pos += copy(buf[pos:], member)
+	binary.BigEndian.PutUint64(buf[pos:], uint64(score))
+	return buf
+}
 
 func checkType(value []byte, dataType byte) error {
 	if len(value) == 0 {

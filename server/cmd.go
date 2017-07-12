@@ -7,16 +7,23 @@ import (
 
 type Args [][]byte
 
-func (a Args) matchN(n int) bool {
-	if len(a) == n {
-		return true
-	}
-	return false
-}
-
 // return key name's string format
 func (a Args) skey() string {
 	return string(a[0])
+}
+
+func (a Args) key() []byte {
+	return a[0]
+}
+
+// return first value
+func (a Args) value() []byte{
+	return a[1]
+}
+
+// return all values
+func (a Args) values() [][]byte {
+	return a[1:]
 }
 
 type CommandFunc func(*client, Args) error
