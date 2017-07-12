@@ -5,7 +5,8 @@ import (
 	"github.com/monsterxx03/rkv/codec"
 )
 
-type CommandFunc func(*client, [][]byte) error
+type Args [][]byte
+type CommandFunc func(*client, Args) error
 
 var CommandsMap = map[string]CommandFunc{}
 
@@ -17,22 +18,22 @@ func register(cmd string, function CommandFunc) {
 	CommandsMap[cmd] = function
 }
 
-func cmdInfo(c *client, args [][]byte) error {
+func cmdInfo(c *client, args Args) error {
 	c.respWriter.writeStr("info")
 	return nil
 }
 
-func cmdPing(c *client, args [][]byte) error {
+func cmdPing(c *client, args Args) error {
 	c.respWriter.writeStr("pong")
 	return nil
 }
 
-func cmdEcho(c *client, args [][]byte) error {
+func cmdEcho(c *client, args Args) error {
 	c.respWriter.writeStr("hahah")
 	return nil
 }
 
-func cmdType(c *client, args [][]byte) error {
+func cmdType(c *client, args Args) error {
 	if len(args) != 1 {
 		return &WrongParamError{"type"}
 	}
@@ -62,7 +63,7 @@ func cmdType(c *client, args [][]byte) error {
 }
 
 // Get key first, delete based on its data type
-func cmdDel(c *client, args [][]byte) error {
+func cmdDel(c *client, args Args) error {
 	return nil
 }
 

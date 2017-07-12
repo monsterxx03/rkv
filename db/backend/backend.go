@@ -16,12 +16,17 @@ type IBatch interface {
 	Commit() error
 }
 
-type IDB interface{
+type IDB interface {
 	Close() error
 	Put(key, value []byte) error
 	Get(key []byte) ([]byte, error)
 	Delete(key []byte) (error)
 	NewBatch() IBatch
+}
+
+type ILock interface {
+	Lock(key string)
+	Unlock(key string)
 }
 
 var BackendMap = map[string]IBackend{}
@@ -33,3 +38,4 @@ func RegisterBackend(b IBackend) {
 	}
 	BackendMap[name] = b
 }
+

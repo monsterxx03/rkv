@@ -4,12 +4,14 @@ import (
 	_ "github.com/monsterxx03/rkv/db/mysql"
 	_ "github.com/monsterxx03/rkv/db/rocksdb"
 	"github.com/monsterxx03/rkv/db/backend"
+	"sync"
 )
 
 
 type DB struct {
 	db backend.IDB
-	writeBatch backend.IBatch
+	WriteBatch backend.IBatch
+	Locker backend.ILock
 }
 
 func NewDB() *DB {
@@ -18,7 +20,7 @@ func NewDB() *DB {
 	if err != nil {
 		panic(err)
 	}
-	return &DB{db, db.NewBatch()}
+	return &DB{db, db.NewBatch(), newLock()}
 }
 
 func (db *DB) Put(key, value []byte) error {
@@ -34,4 +36,33 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	} else {
 		return value, nil
 	}
+}
+
+
+// TODO clean up locks to avoid memory leak
+type MemLock struct {
+	locks map[string]*sync.Mutex
+}
+
+func (l *MemLock) Lock(key string) {
+	if _l, ok := l.locks[key]; !ok {
+		_ll := new(sync.Mutex)
+		_ll.Lock()
+		l.locks[key] = _ll
+	} else {
+		_l.Lock()
+	}
+}
+
+func (l *MemLock) Unlock(key string) {
+	if _l, ok := l.locks[key]; ok {
+		_l.Unlock()
+	}
+}
+
+func newLock() backend.ILock {
+	// Only support lock in memory
+	l := new(MemLock)
+	l.locks = make(map[string]*sync.Mutex)
+	return l
 }

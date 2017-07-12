@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/monsterxx03/rkv/db"
-	"sync"
 	"io"
 	"log"
 	"strings"
@@ -14,14 +13,10 @@ import (
 type client struct {
 	server *Server
 	conn net.Conn
+	cmd string
 	db *db.DB
 	respReader *RESPReader
 	respWriter *RESPWriter
-}
-
-type KeyGuard struct {
-	key []byte
-	m sync.Mutex
 }
 
 func newClient() *client {
@@ -53,21 +48,22 @@ func (c *client) run() {
 			}
 		}
 		cmd := strings.ToLower(string(data[0]))
-		cmdFunc, ok := CommandsMap[cmd]
-		if !ok {
-			c.respWriter.writeError(errors.New("Err unknown command " + cmd))
+		c.cmd = cmd
+		if err := c.exeCmd(data[1:]) ; err != nil {
+			c.respWriter.writeError(err)
 		}
-		if err != c.exeCmd(cmdFunc, data[1:]) {
+		if err := c.respWriter.flush(); err != nil {
 			log.Println("Error flushing response: ", err)
 		}
 	}
 }
 
-func (c *client) exeCmd(cmd CommandFunc, args [][]byte) error {
-	if err := cmd(c, args); err != nil {
-		c.respWriter.writeError(err)
+func (c *client) exeCmd(args [][]byte) error {
+	cmdFunc, ok := CommandsMap[c.cmd]
+	if !ok {
+		return errors.New("Err unknown command " + c.cmd)
 	}
-	if err := c.respWriter.flush(); err != nil {
+	if err := cmdFunc(c, args); err != nil {
 		return err
 	}
 	return nil

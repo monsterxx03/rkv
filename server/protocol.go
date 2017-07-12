@@ -192,3 +192,9 @@ func (w *RESPWriter) writeBulkStr(s []byte) {
 		return
 	}
 }
+
+func (w *RESPWriter) writeInt(n int64) {
+	w.buf.WriteRune(respInt)
+	w.buf.Write(Int64ToSlice(n))
+	w.buf.Write(DELIMS)
+}
