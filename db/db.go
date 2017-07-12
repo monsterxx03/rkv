@@ -41,20 +41,29 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 
 // TODO clean up locks to avoid memory leak
 type MemLock struct {
+	m sync.RWMutex
 	locks map[string]*sync.Mutex
 }
 
 func (l *MemLock) Lock(key string) {
-	if _l, ok := l.locks[key]; !ok {
-		_ll := new(sync.Mutex)
-		_ll.Lock()
-		l.locks[key] = _ll
-	} else {
+	l.m.RLock()
+	_l, ok := l.locks[key]
+	l.m.RUnlock()
+	if ok {
 		_l.Lock()
+		return
 	}
+
+	_ll := new(sync.Mutex)
+	_ll.Lock()
+	l.m.Lock()
+	l.locks[key] = _ll
+	defer l.m.Unlock()
 }
 
 func (l *MemLock) Unlock(key string) {
+	l.m.RLock()
+	defer l.m.RUnlock()
 	if _l, ok := l.locks[key]; ok {
 		_l.Unlock()
 	}

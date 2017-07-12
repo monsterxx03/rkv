@@ -69,3 +69,11 @@ func (c *client) exeCmd(args [][]byte) error {
 	return nil
 }
 
+
+func (c *client) Lock(key string) {
+	c.db.Locker.Lock(key)
+}
+
+func (c *client) Unlock(key string) {
+	c.db.Locker.Unlock(key)
+}

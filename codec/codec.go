@@ -21,6 +21,7 @@ package codec
 
 import (
 	"encoding/binary"
+	"errors"
 )
 
 const (
@@ -37,6 +38,8 @@ func EncodeStrVal(value []byte) []byte {
 	copy(key[1:], value)
 	return key
 }
+
+var WrongTypeError = errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
 
 func DecodeStrKey(rawValue []byte) []byte {
 	if len(rawValue) == 0 {
@@ -72,4 +75,35 @@ func EncodeHashKey(keyName, fieldName []byte) []byte {
 	pos += copy(buf, keyName)
 	copy(buf, fieldName)
 	return buf
+}
+
+
+func checkType(value []byte, dataType byte) error {
+	if len(value) == 0 {
+		return errors.New("Empty value")
+	}
+	if DecodeType(value) != dataType {
+		return WrongTypeError
+	}
+	return nil
+}
+
+func CheckStrType(value []byte) error {
+	return checkType(value, StrType)
+}
+
+func CheckListType(value []byte) error {
+	return checkType(value, ListType)
+}
+
+func CheckHashType(value []byte) error {
+	return checkType(value, HashType)
+}
+
+func CheckSetType(value []byte) error {
+	return checkType(value, SetType)
+}
+
+func CheckZSetType(value []byte) error {
+	return checkType(value, ZSetType)
 }

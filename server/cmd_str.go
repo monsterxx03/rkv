@@ -2,38 +2,39 @@ package server
 
 import (
 	"github.com/monsterxx03/rkv/codec"
-	"strconv"
 	"log"
-	"errors"
 )
 
 func cmdGet(c *client, args Args) error {
-	if len(args) != 1 {
+	if !args.matchN(1) {
 		return &WrongParamError{"get"}
 	}
 	value, err := c.db.Get(args[0])
 	if err != nil {
 		return err
 	}
-
-	if len(value) > 0 && codec.DecodeType(value) != codec.StrType {
-			return WrongTypeError
+	if err := codec.CheckStrType(value); err != nil {
+		return err
 	}
-
 	value = codec.DecodeStrKey(value)
 	c.respWriter.writeBulkStr(value)
 	return nil
 }
 
 func cmdSet(c *client, args Args) error {
-	if len(args) != 2 {
+	if !args.matchN(2) {
 		return &WrongParamError{"set"}
 	}
+	c.Lock(args.skey())
+	defer c.Unlock(args.skey())
+
 	// check key type
-	if value, err := c.db.Get(args[0]); err != nil {
+	value, err := c.db.Get(args[0])
+	if err != nil {
 		return err
-	} else if len(value) > 0 && codec.DecodeType(value) != codec.StrType {
-			return WrongTypeError
+	}
+	if err := codec.CheckStrType(value); err != nil {
+		return err
 	}
 
 	if err := c.db.Put(args[0], codec.EncodeStrVal(args[1])); err != nil {
@@ -44,34 +45,59 @@ func cmdSet(c *client, args Args) error {
 }
 
 func cmdIncr(c *client, args Args) error {
-	if len(args) != 1 {
+	if !args.matchN(1) {
 		return &WrongParamError{"incr"}
 	}
-	c.db.Locker.Lock(string(args[0]))
-	defer c.db.Locker.Unlock(string(args[0]))
+	c.Lock(args.skey())
+	defer c.Unlock(args.skey())
 
-	if value, err := c.db.Get(args[0]); err != nil {
+	value, err := c.db.Get(args[0])
+	if err != nil {
 		return err
-	} else if len(value) > 0 && codec.DecodeType(value) != codec.StrType {
-		return WrongTypeError
-	} else {
-		value := codec.DecodeStrKey(value)
-		// try to convert value to int
-		n, err := strconv.ParseInt(string(value), 10, 64)
-		if err != nil {
-			log.Println(err)
-			return errors.New("ERR value is not an integer or out of range")
-		}
-		n += 1
-		if err := c.db.Put(args[0], codec.EncodeStrVal(Int64ToSlice(n))) ; err != nil {
-			return err
-		}
-		c.respWriter.writeInt(n)
 	}
+	if err := codec.CheckStrType(value); err != nil {
+		return err
+	}
+	value = codec.DecodeStrKey(value)
+	// try to convert value to int
+	n, err := SliceToInt64(value)
+	if err != nil {
+		log.Println(err)
+		return NotIntError
+	}
+	n += 1
+	if err := c.db.Put(args[0], codec.EncodeStrVal(Int64ToSlice(n))); err != nil {
+		return err
+	}
+	c.respWriter.writeInt(n)
 	return nil
 }
 
 func cmdDecr(c *client, args Args) error {
+	if !args.matchN(1) {
+		return &WrongParamError{"decr"}
+	}
+	c.Lock(args.skey())
+	defer c.Unlock(args.skey())
+
+	value, err := c.db.Get(args[0])
+	if err != nil {
+		return err
+	}
+	if err := codec.CheckStrType(value); err != nil {
+		return err
+	}
+	value = codec.DecodeStrKey(value)
+	n, err := SliceToInt64(value)
+	if err != nil {
+		log.Println(err)
+		return NotIntError
+	}
+	n -= 1
+	if err := c.db.Put(args[0], codec.EncodeStrVal(Int64ToSlice(n))); err != nil {
+		return err
+	}
+	c.respWriter.writeInt(n)
 	return nil
 }
 

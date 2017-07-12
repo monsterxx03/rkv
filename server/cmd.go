@@ -6,6 +6,19 @@ import (
 )
 
 type Args [][]byte
+
+func (a Args) matchN(n int) bool {
+	if len(a) == n {
+		return true
+	}
+	return false
+}
+
+// return key name's string format
+func (a Args) skey() string {
+	return string(a[0])
+}
+
 type CommandFunc func(*client, Args) error
 
 var CommandsMap = map[string]CommandFunc{}
