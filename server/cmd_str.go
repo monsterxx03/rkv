@@ -4,11 +4,11 @@ import (
 	"github.com/monsterxx03/rkv/codec"
 )
 
-func cmdGet(c *client) error {
-	if len(c.args) != 1 {
+func cmdGet(c *client, args [][]byte) error {
+	if len(args) != 1 {
 		return &WrongParamError{"get"}
 	}
-	value, err := c.db.Get(c.args[0])
+	value, err := c.db.Get(args[0])
 	if err != nil {
 		return err
 	}
@@ -22,18 +22,18 @@ func cmdGet(c *client) error {
 	return nil
 }
 
-func cmdSet(c *client) error {
-	if len(c.args) != 2 {
+func cmdSet(c *client, args [][]byte) error {
+	if len(args) != 2 {
 		return &WrongParamError{"set"}
 	}
 	// check key type
-	if value, err := c.db.Get(c.args[0]); err != nil {
+	if value, err := c.db.Get(args[0]); err != nil {
 		return err
 	} else if len(value) > 0 && codec.DecodeType(value) != codec.StrType {
 			return WrongTypeError
 	}
 
-	if err := c.db.Put(c.args[0], codec.EncodeStrVal(c.args[1])); err != nil {
+	if err := c.db.Put(args[0], codec.EncodeStrVal(args[1])); err != nil {
 		return err
 	}
 	c.respWriter.writeStr("OK")

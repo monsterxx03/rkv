@@ -3,24 +3,20 @@ package server
 import (
 	"github.com/monsterxx03/rkv/db"
 	"sync"
-	"github.com/monsterxx03/rkv/db/backend"
 	"io"
 	"log"
 	"strings"
 	"runtime"
 	"net"
+	"errors"
 )
 
 type client struct {
 	server *Server
 	conn net.Conn
-	cmd string
-	args [][]byte
 	db *db.DB
 	respReader *RESPReader
 	respWriter *RESPWriter
-
-	writeBatch backend.IBatch
 }
 
 type KeyGuard struct {
@@ -56,11 +52,24 @@ func (c *client) run() {
 				panic(err)
 			}
 		}
-		c.cmd = strings.ToLower(string(data[0]))
-		c.args = data[1:]
-		if err := handleCmd(c); err != nil {
-			c.respWriter.writeError(err)
+		cmd := strings.ToLower(string(data[0]))
+		cmdFunc, ok := CommandsMap[cmd]
+		if !ok {
+			c.respWriter.writeError(errors.New("Err unknown command " + cmd))
 		}
-		c.respWriter.flush()
+		if err != c.exeCmd(cmdFunc, data[1:]) {
+			log.Println("Error flushing response: ", err)
+		}
 	}
 }
+
+func (c *client) exeCmd(cmd CommandFunc, args [][]byte) error {
+	if err := cmd(c, args); err != nil {
+		c.respWriter.writeError(err)
+	}
+	if err := c.respWriter.flush(); err != nil {
+		return err
+	}
+	return nil
+}
+

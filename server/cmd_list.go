@@ -1,11 +1,11 @@
 package server
 
 
-func cmdLpush(c *client) error {
+func cmdLpush(c *client, args [][]byte) error {
 	return nil
 }
 
-func cmdRpush(c *client) error {
+func cmdRpush(c *client, args [][]byte) error {
 	return nil
 }
 

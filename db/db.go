@@ -9,6 +9,7 @@ import (
 
 type DB struct {
 	db backend.IDB
+	writeBatch backend.IBatch
 }
 
 func NewDB() *DB {
@@ -17,7 +18,7 @@ func NewDB() *DB {
 	if err != nil {
 		panic(err)
 	}
-	return &DB{db}
+	return &DB{db, db.NewBatch()}
 }
 
 func (db *DB) Put(key, value []byte) error {
@@ -28,14 +29,9 @@ func (db *DB) Put(key, value []byte) error {
 }
 
 func (db *DB) Get(key []byte) ([]byte, error) {
-	value, err := db.db.Get(key)
-	if err != nil {
+	if value, err := db.db.Get(key); err != nil {
 		return nil, err
+	} else {
+		return value, nil
 	}
-	return value, nil
 }
-
-func (db *DB) NewBatch() backend.IBatch {
-	return db.db.NewBatch()
-}
-

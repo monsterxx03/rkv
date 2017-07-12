@@ -6,12 +6,8 @@ import (
 	"fmt"
 	"log"
 	"bufio"
-	"errors"
-	"strings"
 	"github.com/monsterxx03/rkv/db"
-	"io"
 	_ "net/http/pprof"
-	"runtime"
 )
 
 const (
@@ -51,12 +47,21 @@ func (s *Server) Run() {
 				log.Println(err)
 				continue
 			}
-			handleReq(conn, s)
+			c := newClient()
+			c.server = s
+			c.conn = conn
+			c.db = s.db
+			c.respWriter = NewRESPWriter(conn, s.cfg.WriterBufSize)
+			buf := bufio.NewReaderSize(conn, s.cfg.ReaderBufSize)
+			c.respReader = NewRESPReader(buf)
+
+			go c.run()
 		}
 	}
 }
 
 func NewServer() *Server {
+	// TODO read from cfg file
 	cfg := &Config{DefaultAddr, DefaultPort, DefaultReaderBufSize, DefaultWriterBufSize}
 	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.Port)
 	log.Println("Listening at:", addr)
@@ -69,63 +74,3 @@ func NewServer() *Server {
 		db:  db.NewDB(), quit: make(chan struct{})}
 }
 
-func handleReq(conn net.Conn, serv *Server) {
-	c := newClient()
-	c.server = serv
-	c.conn = conn
-	c.db = serv.db
-	c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
-	c.writeBatch = c.db.NewBatch()
-	buf := bufio.NewReaderSize(conn, serv.cfg.ReaderBufSize)
-	c.respReader = NewRESPReader(buf)
-
-	go c.run()
-}
-
-func _handleReq(conn net.Conn, serv *Server) {
-	defer func() {
-		if err := recover(); err != nil {
-			buf := make([]byte, 4096)
-			length := runtime.Stack(buf, false)
-			buf = buf[0:length]
-			log.Printf("panic when handleReq: %s, %v", buf, err)
-		}
-		conn.Close()
-		serv.wg.Done()
-	}()
-	serv.wg.Add(1)
-	buf := bufio.NewReaderSize(conn, serv.cfg.ReaderBufSize)
-	reader := NewRESPReader(buf)
-	for {
-		// continue read from client
-		data, err := reader.ParseRequest()
-		if err != nil {
-			if err == io.EOF {
-				// client close connection
-				return
-			} else {
-				// unexpected error
-				panic(err)
-			}
-		}
-		c := newClient()
-		c.db = serv.db
-		c.cmd = strings.ToLower(string(data[0]))
-		c.args = data[1:]
-		c.respWriter = NewRESPWriter(conn, serv.cfg.WriterBufSize)
-		c.writeBatch = c.db.NewBatch()
-		if err := handleCmd(c); err != nil {
-			c.respWriter.writeError(err)
-		}
-		c.respWriter.flush()
-	}
-}
-
-func handleCmd(c *client) error {
-	cmdStr := c.cmd
-	cmdFunc, ok := CommandsMap[cmdStr]
-	if !ok {
-		return errors.New("Err unknown command " + cmdStr)
-	}
-	return cmdFunc(c)
-}

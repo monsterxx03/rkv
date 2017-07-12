@@ -50,14 +50,14 @@ func (reader *RESPReader) ParseRequest() ([][]byte, error) {
 	if length < 0 || err != nil {
 		return nil, err
 	}
-	cmds := make([][]byte, length)
-	for i := range cmds {
-		cmds[i], err = parseBulkString(reader.buf)
+	data := make([][]byte, length)
+	for i := range data {
+		data[i], err = parseBulkString(reader.buf)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return cmds, nil
+	return data, nil
 }
 
 func parseInlineCmd(buf *bufio.Reader) ([][]byte, error) {
@@ -158,8 +158,8 @@ func NewRESPWriter(conn net.Conn, size int) *RESPWriter {
 	return &RESPWriter{buf: bufio.NewWriterSize(conn, size)}
 }
 
-func (w *RESPWriter) flush() {
-	w.buf.Flush()
+func (w *RESPWriter) flush() error {
+	return w.buf.Flush()
 }
 
 // return error message to client
