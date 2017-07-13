@@ -6,6 +6,7 @@ import (
 )
 
 func delList(batch backend.IBatch, key, metaValue []byte) error {
+	//TODO delete meta key, loop over items, and delete them
 	// size := int(codec.DecodeSize(metaValue))
 	return nil
 }
@@ -52,6 +53,17 @@ func cmdLrange(c *client, args Args) error {
 	if len(args) != 3 {
 		return &WrongParamError{"lrange"}
 	}
+	/*
+	var err error
+	start, err := SliceToInt64(args.values()[0])
+	if err != nil {
+		return err
+	}
+	stop, err := SliceToInt64(args.values()[1])
+	if err != nil {
+		return err
+	}
+	*/
 	return nil
 }
 

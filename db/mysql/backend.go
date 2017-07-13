@@ -48,8 +48,11 @@ func (db *DB) Delete(key []byte) error {
 	return nil
 }
 
-
 func (db *DB) NewBatch() backend.IBatch {
+	return nil
+}
+
+func (db *DB) NewIter() backend.IIter {
 	return nil
 }
 

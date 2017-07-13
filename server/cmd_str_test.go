@@ -23,6 +23,17 @@ func TestCmdSet(t *testing.T) {
 	} else if val != "OK" {
 		t.Fatal(val)
 	}
+	// test set on list type
+	conn.LPush("test1L", 1)
+	if val, err := conn.Set("test1L", "a", 0).Result(); err != nil {
+		t.Fatal(err)
+	} else if val != "OK" {
+		t.Fatal(val)
+	}
+	val, _ := conn.Get("test1L").Result()
+	if val != "a" {
+		t.Fatal(val)
+	}
 
 	// test get
 	if val, err := conn.Get(key).Result(); err != nil {

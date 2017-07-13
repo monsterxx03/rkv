@@ -17,6 +17,10 @@ type IBatch interface {
 	Commit() error
 }
 
+type IIter interface {
+	Next()
+}
+
 type IDB interface {
 	Close() error
 	Put(key, value []byte) error
@@ -24,6 +28,7 @@ type IDB interface {
 	MGet(keys [][]byte) ([][]byte, error)
 	Delete(key []byte) (error)
 	NewBatch() IBatch
+	NewIter() IIter
 }
 
 type ILock interface {

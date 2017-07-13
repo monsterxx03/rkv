@@ -57,6 +57,10 @@ func (db *DB) NewBatch() backend.IBatch {
 	return db.db.NewBatch()
 }
 
+func (db *DB) NewIter() backend.IIter {
+	return db.db.NewIter()
+}
+
 
 // TODO clean up locks to avoid memory leak
 type MemLock struct {

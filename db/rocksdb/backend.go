@@ -148,6 +148,10 @@ func (db *DB) NewBatch() backend.IBatch {
 	return wb
 }
 
+func (db *DB) NewIter() backend.IIter {
+	return db.db.NewIterator(db.defaultRo)
+}
+
 func init() {
 	backend.RegisterBackend(Backend{})
 }

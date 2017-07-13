@@ -20,3 +20,12 @@ func FilterByte(data [][]byte, f func([]byte) bool) [][]byte {
 	}
 	return result
 }
+
+func AllByte(data [][]byte, f func([]byte) bool) bool {
+	for _, v := range data {
+		if !f(v) {
+			return false
+		}
+	}
+	return true
+}

@@ -17,7 +17,7 @@ func (a Args) key() []byte {
 }
 
 // return first value
-func (a Args) value() []byte{
+func (a Args) value() []byte {
 	return a[1]
 }
 
@@ -95,13 +95,20 @@ func cmdDel(c *client, args Args) error {
 	// filter empty value
 	// values = FilterByte(values, func (x []byte) bool { return len(x) > 0})
 
-	if len(values) == 0 {
+	if AllByte(values, func (x []byte) bool {return len(x) == 0}) {
 		// all keys not exist
 		c.respWriter.writeInt(0)
 		return nil
 	}
 	batch := c.db.NewBatch()
 	for i, key := range args {
+		c.Lock(string(key))
+		defer c.Unlock(string(key))
+
+		if len(values[i]) == 0 {
+			// skip non-exist key
+			continue
+		}
 		switch dataType := codec.DecodeType(values[i]); dataType {
 		case codec.StrType:
 			if err := delStr(batch, key, values[i]); err != nil {
