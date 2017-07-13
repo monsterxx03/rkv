@@ -3,7 +3,18 @@ package server
 import (
 	"github.com/monsterxx03/rkv/codec"
 	"log"
+	"fmt"
+	"github.com/monsterxx03/rkv/db/backend"
 )
+
+// called by cmdDel
+func delStr(batch backend.IBatch, key, metaValue []byte) error {
+	if metaValue[0] != codec.StrType {
+		return fmt.Errorf("%s is not str", key)
+	}
+	batch.Delete(key)
+	return nil
+}
 
 func cmdGet(c *client, args Args) error {
 	if len(args) != 1 {

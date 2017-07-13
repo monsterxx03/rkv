@@ -26,3 +26,7 @@ func TestCmdLpush(t *testing.T) {
 		t.Fatal(value)
 	}
 }
+
+
+func TestCmdLpop(t *testing.T) {
+}

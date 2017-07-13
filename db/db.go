@@ -11,7 +11,6 @@ import (
 
 type DB struct {
 	db backend.IDB
-	WriteBatch backend.IBatch
 	Locker backend.ILock
 }
 
@@ -21,7 +20,7 @@ func NewDB(cfg *config.Config) *DB {
 	if err != nil {
 		panic(err)
 	}
-	return &DB{db, db.NewBatch(), newLock()}
+	return &DB{db, newLock()}
 }
 
 func (db *DB) Put(key, value []byte) error {
@@ -37,6 +36,25 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	} else {
 		return value, nil
 	}
+}
+
+func (db *DB) MGet(keys [][]byte) ([][]byte, error) {
+	if value, err := db.db.MGet(keys); err != nil {
+		return nil, err
+	} else {
+		return value, nil
+	}
+}
+
+func (db *DB) Delete(key []byte) error {
+	if  err := db.db.Delete(key); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) NewBatch() backend.IBatch {
+	return db.db.NewBatch()
 }
 
 

@@ -2,7 +2,13 @@ package server
 
 import (
 	"github.com/monsterxx03/rkv/codec"
+	"github.com/monsterxx03/rkv/db/backend"
 )
+
+func delList(batch backend.IBatch, key, metaValue []byte) error {
+	// size := int(codec.DecodeSize(metaValue))
+	return nil
+}
 
 func cmdLpush(c *client, args Args) error {
 	if len(args) < 2 {
@@ -25,11 +31,12 @@ func cmdLpush(c *client, args Args) error {
 	}
 	value = codec.EncodeMetaVal(codec.ListType, int(size) + len(args.values()))
 	// write meta key
-	c.db.WriteBatch.Put(args.key(), value)
+	batch := c.db.NewBatch()
+	batch.Put(args.key(), value)
 	for i, v:= range args[1:] {
-		c.db.WriteBatch.Put(codec.EncodeListKey(args.key(), size + i), v)
+		batch.Put(codec.EncodeListKey(args.key(), size + i), v)
 	}
-	c.db.WriteBatch.Commit()
+	batch.Commit()
 	c.respWriter.writeInt(int64(size + len(args.values())))
 	return nil
 }

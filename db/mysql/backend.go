@@ -40,9 +40,14 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
+func (db *DB) MGet(keys [][]byte) ([][]byte, error) {
+	return nil, nil
+}
+
 func (db *DB) Delete(key []byte) error {
 	return nil
 }
+
 
 func (db *DB) NewBatch() backend.IBatch {
 	return nil

@@ -119,6 +119,21 @@ func (db *DB) Get(key []byte) ([]byte, error) {
 	}
 }
 
+func (db *DB) MGet(keys [][]byte) ([][]byte, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	}
+	values := make([][]byte, len(keys))
+	for i, key := range keys {
+		if val, err := db.Get(key); err != nil {
+			return nil, err
+		} else {
+			values[i] = val
+		}
+	}
+	return values, nil
+}
+
 func (db *DB) Delete(key []byte) error {
 	if err := db.db.Delete(db.defaultWo, key); err != nil {
 		return err

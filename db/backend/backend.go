@@ -21,6 +21,7 @@ type IDB interface {
 	Close() error
 	Put(key, value []byte) error
 	Get(key []byte) ([]byte, error)
+	MGet(keys [][]byte) ([][]byte, error)
 	Delete(key []byte) (error)
 	NewBatch() IBatch
 }

@@ -21,7 +21,7 @@ func (a Args) value() []byte{
 	return a[1]
 }
 
-// return all values
+// return all values except first one
 func (a Args) values() [][]byte {
 	return a[1:]
 }
@@ -57,7 +57,7 @@ func cmdType(c *client, args Args) error {
 	if len(args) != 1 {
 		return &WrongParamError{"type"}
 	}
-	value, err := c.db.Get(args[0])
+	value, err := c.db.Get(args.key())
 	if err != nil {
 		return err
 	}
@@ -84,6 +84,39 @@ func cmdType(c *client, args Args) error {
 
 // Get key first, delete based on its data type
 func cmdDel(c *client, args Args) error {
+	if len(args) == 0 {
+		return &WrongParamError{"del"}
+	}
+
+	values, err := c.db.MGet(args)
+	if err != nil {
+		return err
+	}
+	// filter empty value
+	// values = FilterByte(values, func (x []byte) bool { return len(x) > 0})
+
+	if len(values) == 0 {
+		// all keys not exist
+		c.respWriter.writeInt(0)
+		return nil
+	}
+	batch := c.db.NewBatch()
+	for i, key := range args {
+		switch dataType := codec.DecodeType(values[i]); dataType {
+		case codec.StrType:
+			if err := delStr(batch, key, values[i]); err != nil {
+				return err
+			}
+		case codec.ListType:
+			if err := delList(batch, key, values[i]); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown data type %s", dataType)
+		}
+	}
+	batch.Commit()
+	c.respWriter.writeInt(1)
 	return nil
 }
 
