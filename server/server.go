@@ -7,19 +7,12 @@ import (
 	"log"
 	"bufio"
 	"github.com/monsterxx03/rkv/db"
+	"github.com/monsterxx03/rkv/config"
 	_ "net/http/pprof"
 )
 
-const (
-	DefaultAddr          string = "0.0.0.0"
-	DefaultPort          int    = 9910
-	DefaultReaderBufSize        = 4096
-	DefaultWriterBufSize        = 4096
-)
-
-
 type Server struct {
-	cfg      *Config
+	cfg      *config.Config
 	listener net.Listener
 	db       *db.DB
 	wg       sync.WaitGroup
@@ -45,8 +38,8 @@ func (s *Server) Run() {
 			c.server = s
 			c.conn = conn
 			c.db = s.db
-			c.respWriter = NewRESPWriter(conn, s.cfg.WriterBufSize)
-			buf := bufio.NewReaderSize(conn, s.cfg.ReaderBufSize)
+			c.respWriter = NewRESPWriter(conn, s.cfg.WriteBufSize)
+			buf := bufio.NewReaderSize(conn, s.cfg.ReadBufSize)
 			c.respReader = NewRESPReader(buf)
 
 			go c.run()
@@ -54,17 +47,16 @@ func (s *Server) Run() {
 	}
 }
 
-func NewServer() *Server {
-	// TODO read from cfg file
-	cfg := newConfig()
+func NewServer(cfg *config.Config) *Server {
 	addr := fmt.Sprintf("%s:%d", cfg.Addr, cfg.Port)
 	log.Println("Listening at:", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic("Failed to listen on: " + addr)
 	}
+	_db := db.NewDB(cfg)
 	return &Server{
 		cfg: cfg, listener: listener,
-		db:  db.NewDB(), quit: make(chan struct{})}
+		db:  _db, quit: make(chan struct{})}
 }
 

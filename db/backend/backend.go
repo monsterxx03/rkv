@@ -2,11 +2,12 @@ package backend
 
 import (
 	"fmt"
+	"github.com/monsterxx03/rkv/config"
 )
 
 type IBackend interface {
 	String() string
-	Open() (IDB, error)
+	Open(*config.Config) (IDB, error)
 }
 
 type IBatch interface {

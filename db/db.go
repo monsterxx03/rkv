@@ -4,6 +4,7 @@ import (
 	_ "github.com/monsterxx03/rkv/db/mysql"
 	_ "github.com/monsterxx03/rkv/db/rocksdb"
 	"github.com/monsterxx03/rkv/db/backend"
+	"github.com/monsterxx03/rkv/config"
 	"sync"
 )
 
@@ -14,9 +15,9 @@ type DB struct {
 	Locker backend.ILock
 }
 
-func NewDB() *DB {
+func NewDB(cfg *config.Config) *DB {
 	b := backend.BackendMap["rocksdb"]
-	db, err := b.Open()
+	db, err := b.Open(cfg)
 	if err != nil {
 		panic(err)
 	}

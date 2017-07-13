@@ -3,6 +3,7 @@ package rocksdb
 import (
 	"github.com/monsterxx03/rkv/db/backend"
 	"github.com/tecbot/gorocksdb"
+	"github.com/monsterxx03/rkv/config"
 )
 
 type Backend struct {
@@ -12,9 +13,9 @@ func (s Backend) String() string {
 	return "rocksdb"
 }
 
-func (s Backend) Open() (backend.IDB, error) {
+func (s Backend) Open(cfg *config.Config) (backend.IDB, error) {
 	db := newDB()
-	if err := db.open(); err != nil {
+	if err := db.open(cfg); err != nil {
 		return nil, err
 	}
 	return db, nil
@@ -58,38 +59,44 @@ func newDB() *DB {
 	return rdb
 }
 
-func (db *DB) open() error {
-	// TODO init options dynamically from config file
-	blo := gorocksdb.NewDefaultBlockBasedTableOptions()
-	blo.SetBlockCache(gorocksdb.NewLRUCache(1073741824))
-	blo.SetBlockSize(65536)
-	blo.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
+func (db *DB) open(cfg *config.Config) error {
+	opts := db.initOptions(cfg)
 
-	opts := gorocksdb.NewDefaultOptions()
-	opts.SetBlockBasedTableFactory(blo)
-
-	env := gorocksdb.NewDefaultEnv()
-	env.SetBackgroundThreads(16)
-	env.SetHighPriorityBackgroundThreads(1)
-	opts.SetEnv(env)
-
-	opts.SetCreateIfMissing(true)
-	opts.SetCompression(gorocksdb.NoCompression)
-	opts.SetWriteBufferSize(134217728)
-	opts.SetMaxWriteBufferNumber(6)
-	opts.SetMinWriteBufferNumberToMerge(2)
-	opts.SetMaxOpenFiles(1024)
-	opts.SetNumLevels(7)
-	opts.SetMaxBackgroundCompactions(15)
-	opts.SetMaxBackgroundFlushes(1)
-	opts.SetUseFsync(false)
-
-	if rdb, err := gorocksdb.OpenDb(opts, "data"); err != nil {
+	if rdb, err := gorocksdb.OpenDb(opts, cfg.RocksDB.DataDir); err != nil {
 		return err
 	} else {
 		db.db = rdb
 		return nil
 	}
+}
+
+func (db *DB) initOptions(cfg *config.Config) *gorocksdb.Options {
+	blo := gorocksdb.NewDefaultBlockBasedTableOptions()
+	ropt := cfg.RocksDB
+
+	blo.SetBlockCache(gorocksdb.NewLRUCache(ropt.BlockCache))
+	blo.SetBlockSize(ropt.BlockSize)
+	blo.SetFilterPolicy(gorocksdb.NewBloomFilter(ropt.BloomFilterBitsPerKey))
+
+	opts := gorocksdb.NewDefaultOptions()
+	opts.SetBlockBasedTableFactory(blo)
+
+	env := gorocksdb.NewDefaultEnv()
+	env.SetBackgroundThreads(ropt.BackgroundThreads)
+	env.SetHighPriorityBackgroundThreads(ropt.HighPriorityBackgroundThreads)
+	opts.SetEnv(env)
+
+	opts.SetCreateIfMissing(true)
+	opts.SetCompression(gorocksdb.CompressionType(ropt.CompressionType))
+	opts.SetWriteBufferSize(ropt.WriteBufferSize)
+	opts.SetMaxWriteBufferNumber(ropt.MaxWriteBufferNumber)
+	opts.SetMinWriteBufferNumberToMerge(ropt.MinWriteBufferNumberToMerge)
+	opts.SetMaxOpenFiles(ropt.MaxOpenFiles)
+	opts.SetNumLevels(ropt.NumLevels)
+	opts.SetMaxBackgroundCompactions(ropt.MaxBackgroundCompactions)
+	opts.SetMaxBackgroundFlushes(ropt.MaxBackgroundFlushes)
+	opts.SetUseFsync(ropt.UseFsync)
+	return opts
 }
 
 func (db *DB) Close() error {
