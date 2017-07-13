@@ -21,14 +21,14 @@ func TestCmdSet(t *testing.T) {
 	if val, err := conn.Set(key, value, 0).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != "OK" {
-		t.Fatal("bad resp: ", val)
+		t.Fatal(val)
 	}
 
 	// test get
 	if val, err := conn.Get(key).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != value {
-		t.Fatal("bad resp: ", val)
+		t.Fatal(val)
 	}
 
 	// test incr on string value
@@ -39,13 +39,13 @@ func TestCmdSet(t *testing.T) {
 	if val, err := conn.Incr(intKey).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != 1 {
-		t.Fatal("bad resp: ", val)
+		t.Fatal(val)
 	}
 	conn.Incr(intKey)
 	if val, err := conn.Get(intKey).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != "2" {
-		t.Fatal("bad resp: ", val)
+		t.Fatal(val)
 	}
 
 	// test decr
@@ -54,11 +54,11 @@ func TestCmdSet(t *testing.T) {
 	if val, err := conn.Decr(intKey).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != -1 {
-		t.Fatal("Bad resp: ", val)
+		t.Fatal(val)
 	}
 	if val, err := conn.Get(intKey).Result(); err != nil {
 		t.Fatal(err)
 	} else if val != "-1" {
-		t.Fatal("Bad resp", val)
+		t.Fatal(val)
 	}
 }
