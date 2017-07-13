@@ -1,6 +1,8 @@
 package config
 
-import "github.com/go-ini/ini"
+import (
+	"github.com/go-ini/ini"
+)
 
 type Config struct {
 	Addr         string
@@ -8,6 +10,7 @@ type Config struct {
 	ReadBufSize  int
 	WriteBufSize int
 	RocksDB      RocksDBConfig
+	Backend      string
 }
 
 type RocksDBConfig struct {
@@ -30,10 +33,12 @@ type RocksDBConfig struct {
 
 func NewConfig(cfg *ini.File) *Config {
 	_cfg := new(Config)
-	_cfg.Addr = cfg.Section("server").Key("host").MustString("127.0.0.1")
-	_cfg.Port = cfg.Section("server").Key("port").MustInt(12000)
-	_cfg.ReadBufSize = cfg.Section("server").Key("read_buf_size").MustInt(4096)
-	_cfg.WriteBufSize = cfg.Section("server").Key("write_buf_size").MustInt(4096)
+	serverSection := cfg.Section("server")
+	_cfg.Addr = serverSection.Key("host").MustString("127.0.0.1")
+	_cfg.Port = serverSection.Key("port").MustInt(12000)
+	_cfg.ReadBufSize = serverSection.Key("read_buf_size").MustInt(4096)
+	_cfg.WriteBufSize = serverSection.Key("write_buf_size").MustInt(4096)
+	_cfg.Backend = serverSection.Key("Backend").MustString("rocksdb")
 	_cfg.RocksDB = newRocksDBConfig(cfg.Section("rocksdb"))
 	return _cfg
 }

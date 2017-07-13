@@ -16,7 +16,7 @@ type DB struct {
 }
 
 func NewDB(cfg *config.Config) *DB {
-	b := backend.BackendMap["rocksdb"]
+	b := backend.BackendMap[cfg.Backend]
 	db, err := b.Open(cfg)
 	if err != nil {
 		panic(err)

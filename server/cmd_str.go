@@ -78,7 +78,6 @@ func cmdIncr(c *client, args Args) error {
 	// try to convert value to int
 	n, err := SliceToInt64(value)
 	if err != nil {
-		log.Println(err)
 		return NotIntError
 	}
 	n += 1

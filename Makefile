@@ -5,3 +5,6 @@ export CGO_LDFLAGS=-L/home/vagrant/rocksdb -lrocksdb -lstdc++ -lm -lsnappy
 
 server:
 	go build -o bin/rkv-server cmd/rkv-server/*
+
+test:
+	go test -race -v server/*
